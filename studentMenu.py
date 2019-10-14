@@ -29,37 +29,15 @@ def student_menu():
     return
 
 
-def print_time_table():
-
-    c = user_acc.conn.cursor()
-
-    # user가 수강한 year, semester 정보 받아오기
-    # Takes table을 이용하여 user가 수강한 year, semester쌍을 최근 순서로 받아오기 (distinct로 중복계산 방지)
-
-    print("\nTime Table\n")
-    print("%10s\t%40s\t%15s\t%10s\t%10s" % ("course_id", "title", "day", "start_time", "end_time"))
-
-    # user가 수강한 year, semester중 가장 최근 year, semester를 이용하여
-    # time table 만들기
-    # Takes, course, section, time_slot 을 natural join하여 사용자가 수강한 강의의 course_id, title과 그 강의의 시작과 끝 시간을 받아온다.
-    # For course_time in course_times:
-    #   위 형식에 맞춰 course_id, title, day, start_time, end_time 출력
-
-    # 사용한 cursor  닫기
-    c.close()
-
-    return
-
-
 def print_stud_report():
 
     c = user_acc.conn.cursor()
-    c.execute("SELECT * FROM student WHERE ID = \"%s\" and name = \"%s\""%(user_acc.ID, user_acc.name))
+    c.execute("SELECT * FROM student WHERE ID = \"%s\" and name = \"%s\"" % (user_acc.ID, user_acc.name))
 
     data = c.fetchone()
 
-    print("You are a member of %s"%data[2])
-    print("You have taken total %s credit\n"%data[3])
+    print("You are a member of %s" % data[2])
+    print("You have taken total %s credit\n" % data[3])
     print("Semester report\n")
 
     # 평점 구하는 과정
@@ -124,6 +102,28 @@ def quit_menu():
     return_connect(user_acc.conn)
 
     del user_acc
+
+    return
+
+
+def print_time_table():
+
+    c = user_acc.conn.cursor()
+
+    # user가 수강한 year, semester 정보 받아오기
+    # Takes table을 이용하여 user가 수강한 year, semester쌍을 최근 순서로 받아오기 (distinct로 중복계산 방지)
+
+    print("\nTime Table\n")
+    print("%10s\t%40s\t%15s\t%10s\t%10s" % ("course_id", "title", "day", "start_time", "end_time"))
+
+    # user가 수강한 year, semester중 가장 최근 year, semester를 이용하여
+    # time table 만들기
+    # Takes, course, section, time_slot 을 natural join하여 사용자가 수강한 강의의 course_id, title과 그 강의의 시작과 끝 시간을 받아온다.
+    # For course_time in course_times:
+    #   위 형식에 맞춰 course_id, title, day, start_time, end_time 출력
+
+    # 사용한 cursor  닫기
+    c.close()
 
     return
 
