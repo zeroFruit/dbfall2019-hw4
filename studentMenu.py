@@ -129,5 +129,5 @@ def quit_menu():
 
 
 def print_wrong():
-    print("\nwrong menu number. ")
+    print("\nWrong menu number. ")
     return
