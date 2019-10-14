@@ -29,6 +29,17 @@ def student_menu():
     return
 
 
+def quit_menu():
+    global user_acc # global 변수 write할 때는 명시 필요
+
+    # user가 사용하던 connection 반납
+    return_connect(user_acc.conn)
+
+    del user_acc
+
+    return
+
+
 def print_stud_report():
 
     c = user_acc.conn.cursor()
@@ -37,11 +48,20 @@ def print_stud_report():
     data = c.fetchone()
 
     print("You are a member of %s" % data[2])
-    print("You have taken total %s credit\n" % data[3])
+    print("You have taken total %s credits\n" % data[3])
     print("Semester report\n")
 
     # 평점 구하는 과정
     # 수강한 학기, 연도 정보 모두 가져오기(distinct로 중복계산 방지)
+    c.execute("SELECT year, semester FROM takes WHERE ID = \"%s\" GROUP BY year, semester ORDER BY year, semester DESC"
+              % user_acc.ID)
+
+    results = c.fetchall()
+
+    for result in results:
+        year, semester = result
+
+
     # takes table에서 사용자가 다닌 year, semester 쌍을 최근 순서로 가져온다.
     # For year, semester 쌍들에 대해서:
     #   takes, course table을 natural join하여 각 수업의 credit과 사용자가 받은 grade를 얻는다.
@@ -93,17 +113,6 @@ def print_course_qual():
         # else: #input이 title일 때
         #   course_id = course_id
         #   course_title = input
-
-
-def quit_menu():
-    global user_acc # global 변수 write할 때는 명시 필요
-
-    # user가 사용하던 connection 반납
-    return_connect(user_acc.conn)
-
-    del user_acc
-
-    return
 
 
 def print_time_table():
