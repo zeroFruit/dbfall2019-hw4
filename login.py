@@ -40,7 +40,7 @@ def auth(ID, name):
 
     if is_student:
         # user account의 attribute들을 설정한다. (student로)
-        user_acc.set_attrs(ID, name, 0, curs)
+        user_acc.set_attrs(ID, name, 0, user_connect)
         return
     else:
         # instructor table에 해당 ID와 name을 가진 row가 있는지 확인
@@ -48,7 +48,7 @@ def auth(ID, name):
 
         if is_instructor:
             # user account의 attribute들을 설정한다. (instructor로)
-            user_acc.set_attrs(ID, name, 1, curs)
+            user_acc.set_attrs(ID, name, 1, user_connect)
             return
         else:
             # student, instructor 모두가 아닐 때
