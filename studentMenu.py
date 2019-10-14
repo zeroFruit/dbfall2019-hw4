@@ -2,6 +2,22 @@ from userAcc import *
 from DBconnection import *
 
 
+grades_to_point = {
+    'A+': 4.3,
+    'A' : 4,
+    'A-': 3.7,
+    'B+': 3.3,
+    'B' : 3,
+    'B-': 2.7,
+    'C+': 2.3,
+    'C' : 2,
+    'C-': 1.7,
+    'D+': 1.3,
+    'D' : 1,
+    'D-': 0.7,
+    'F' : 0
+}
+
 def student_menu():
 
     menu_num = -1
@@ -43,7 +59,10 @@ def quit_menu():
 def print_stud_report():
 
     c = user_acc.conn.cursor()
-    c.execute("SELECT * FROM student WHERE ID = \"%s\" and name = \"%s\"" % (user_acc.ID, user_acc.name))
+    c.execute("SELECT * "
+              "FROM student "
+              "WHERE ID = \"%s\" AND name = \"%s\""
+              % (user_acc.ID, user_acc.name))
 
     data = c.fetchone()
 
@@ -52,8 +71,12 @@ def print_stud_report():
     print("Semester report\n")
 
     # 평점 구하는 과정
-    # 수강한 학기, 연도 정보 모두 가져오기(distinct로 중복계산 방지)
-    c.execute("SELECT year, semester FROM takes WHERE ID = \"%s\" GROUP BY year, semester ORDER BY year, semester DESC"
+
+    c.execute("SELECT year, semester "
+              "FROM takes "
+              "WHERE ID = \"%s\" "
+              "GROUP BY year, semester "
+              "ORDER BY year, semester DESC"
               % user_acc.ID)
 
     results = c.fetchall()
@@ -61,26 +84,38 @@ def print_stud_report():
     for result in results:
         year, semester = result
 
+        c.execute("SELECT grade, credits "
+                  "FROM takes NATURAL JOIN course "
+                  "WHERE takes.ID = \"%s\" AND takes.semester = \"%s\" AND takes.year = \"%s\""
+                  % (user_acc.ID, semester, year))
 
-    # takes table에서 사용자가 다닌 year, semester 쌍을 최근 순서로 가져온다.
-    # For year, semester 쌍들에 대해서:
-    #   takes, course table을 natural join하여 각 수업의 credit과 사용자가 받은 grade를 얻는다.
-    #
-    # grade, credit 정보 cursor에서 받아오기
-    #   (grade1, credit1), (grade2, credit2) ... 을 (grade1, grade2, ...), (credit1, credit2, ...) 로 만든다.
-    #   Zip을 이용하여 grades, credit list를 생성한다.
-    #   For grade in grades:
-    #       gp_to_float함수를 이용하여 gps list에 append
+        courses_part = c.fetchall()
 
-    #   print("\n%s\t%s\tGPA : %d"%(year, semester, sum(gps)/len(gps)))
+        grades, credit = list(zip(*courses_part))
 
-    #   과목들 정보 출력
-    #   print("%10s\t%40s\t%15s\t%8s\t%8s"
-    #   %("course_id", "title", "debt_name", "credit", "grade"))
-    # (grade1, credit1), (grade2, credit2) ... 을 (grade1, grade2, ...), (credit1, credit2, ...) 로 만든다.
-    #   course, takes를 natural join하여 해당 semester, year에 수강한 강의 정보들을 만듬
-    #   for course info in course_infos:
-    #       위 출력 형식대로 course_id, title, dept_name, credit, grade를 줄 맞춰 출력
+        gps = []
+
+        ind = 0
+        for grade in grades:
+            for i in range(int(credit[ind])):
+                gps.append(grades_to_point[grade.strip()])
+            ind = ind + 1
+
+        print("\n%s\t%s\tGPA : %f" % (year, semester, float(sum(gps) / len(gps))))
+
+        c.execute("SELECT course_id, title, dept_name, credits, grade "
+                  "FROM takes NATURAL JOIN course "
+                  "WHERE takes.ID = \"%s\" AND takes.semester = \"%s\" AND takes.year = \"%s\""
+                  % (user_acc.ID, semester, year))
+
+        courses_all = c.fetchall()
+
+        print("%10s\t%40s\t%15s\t%8s\t%8s"
+              % ("course_id", "title", "debt_name", "credits", "grade"))
+        for course in courses_all:
+            course_id, title, debt_name, credits, grade = course
+            print("%10s\t%40s\t%15s\t%8s\t%8s"
+                  % (course_id, title, debt_name, credits, grade))
 
     # cursor 닫기
     c.close()
