@@ -76,22 +76,19 @@ def print_time_table():
 
     return
 
-
-def get_sortkey(semesterDict, x):
-    semester = semesterDict[x[3]]
-    year = int(x[4])
-    return year * 10 + semester
     
+# semester 별로 나누어서 담아주기. 
 def process(data):
     if len(data) == 0:
         return data
     splitBySemester = []
-    same_semester = [data[0]]
     first_lecture = data[0]
+    same_semester = [data[0]]
     prev_semester = first_lecture[3]
     prev_year = first_lecture[4]
     for lecture in data[1:]:
-        _, course_id, _, semester, year, grade, title, dept_name, credit = lecture
+        semester = lecture[3]
+        year = lecture[4]
         if semester == prev_semester and year == prev_year:
             same_semester.append(lecture)
         else:
@@ -101,7 +98,6 @@ def process(data):
         prev_year = year
     splitBySemester.append(same_semester)
     return splitBySemester
-            
 
 def print_stud_report():
 
@@ -124,14 +120,15 @@ def print_stud_report():
     print("You have taken total %s credit\n"%data[3])
     print("Semester report")
     
-    sql = "select * from takes as T natural join course as C where T.ID in (select ID from student where name = '{}');".format(user_acc.name)
+    sql = "select * " +\
+          "from takes as T natural join course as C " +\
+          "where T.ID in (select ID from student where name = '{}') ".format(user_acc.name) +\
+          "order by year desc, semester;"
     c.execute(sql)
     
-    data = list(c.fetchall())
+    data = c.fetchall()
+    coursesBySem = process(data)
     # 출력 데이터 : ID, course_id, sec_id, semester, year, grade, title, dept_name, credit
-    data.sort(key=lambda x: get_sortkey(semesterDict, x))
-
-    coursesBySem = process(data)[::-1]
 
     # DONE : grade Null 처리 
     # Done : Tot_cred Null 처리 
