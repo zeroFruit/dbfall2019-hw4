@@ -10,11 +10,16 @@ def instructor_menu():
         print("\n\nWelcome %s" % user_acc.name)
         print("select instructor menu")
 
+        print("1) Course report")
+        print("2) Advisee report")
         print("0) Quit")
+
         menu_num = input("Enter : ")
 
         switcher = {
-            '0': quit_menu
+            '0': quit_menu,
+            '1': course_report,
+            '2': advisee_report,
         }
 
         selected_func = switcher.get(menu_num, print_wrong)
@@ -33,6 +38,14 @@ def quit_menu():
     del user_acc
 
     return
+
+
+def course_report():
+    pass
+
+
+def advisee_report():
+    pass
 
 
 def print_wrong():
