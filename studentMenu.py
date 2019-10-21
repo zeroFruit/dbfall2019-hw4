@@ -77,7 +77,7 @@ def print_time_table():
     return
 
     
-# semester 별로 나누어서 담아주기. 
+# 전체 과목 데이터를 학기별로 나누어서 구분하기. 
 def process(data):
     if len(data) == 0:
         return data
@@ -89,7 +89,7 @@ def process(data):
     for lecture in data[1:]:
         semester = lecture[3]
         year = lecture[4]
-        if semester == prev_semester and year == prev_year:
+        if semester == prev_semester and year == prev_year:  
             same_semester.append(lecture)
         else:
             splitBySemester.append(same_semester)
@@ -100,8 +100,6 @@ def process(data):
     return splitBySemester
 
 def print_stud_report():
-
-    semesterDict = {"Spring" : 1, "Summer" : 2, "Fall" : 3, "Winter" : 4}
     gpaDict = {"A+": 4.3, "A": 4.0, "A-": 3.7, "B+": 3.3, "B" : 3.0, "B-":2.7, 
                "C+": 2.3, "C": 2.0, "C-":1.7, "D+": 1.3, "D": 1.0, "D-" : 0.7, "F": 0}
     c = user_acc.conn.cursor()
@@ -110,7 +108,7 @@ def print_stud_report():
     data = c.fetchone()
     print("You are a member of %s"%data[2])
     
-    totalCreditIsZero = True if data[3] == None else False
+    totalCreditIsZero = True if (data[3] == None or data[3] == 0) else False  # Tot_cred Null 처리 
     if totalCreditIsZero:
         totalCredit = "0"
         print("You have taken total %s credit\n"%totalCredit)
@@ -126,68 +124,37 @@ def print_stud_report():
           "order by year desc, semester;"
     c.execute(sql)
     
-    data = c.fetchall()
-    coursesBySem = process(data)
-    # 출력 데이터 : ID, course_id, sec_id, semester, year, grade, title, dept_name, credit
-
-    # DONE : grade Null 처리 
-    # Done : Tot_cred Null 처리 
-    gradeIsNull = False
-    for courseInSem in coursesBySem:
+    data = c.fetchall()  #data = [ID, course_id, sec_id, semester, year, grade, title, dept_name, credit]
+    coursesBySem = process(data) 
+    
+    
+    for courseInSem in coursesBySem:  # 전체 학기 성적 처리 
         total_gpa = 0
         total_credit = 0
-        for course in courseInSem:
+        
+        for course in courseInSem:  # 학기 성적 합산
             course_id, _, _, semester, year, grade, title, dept_name, credit = course
             if grade == None:
-                gradeIsNull = True
-                break
-            total_gpa += gpaDict[grade] * int(credit)
+                continue
+            clean_grade = grade.strip()  # 'A ' 처리. 
+            total_gpa += gpaDict[clean_grade] * int(credit)
             total_credit += int(credit)
-        if not gradeIsNull:
-            avg_gpa = total_gpa / total_credit
-            print("\n%s\t%s\tGPA : %.5f"%(year, semester, avg_gpa))
-        else:
+            
+        if total_gpa == 0:  # grade가 모두 null인 경우 GPA 출력하지 않음. 
             print("\n%s\t%s\tGPA : "%(year, semester))
-        for course in courseInSem:
+        else:
+            avg_gpa = total_gpa / total_credit  # grade가 하나라도 null이 아닌 게 있다면 GPA 출력
+            print("\n%s\t%s\tGPA : %.5f"%(year, semester, avg_gpa))
+            
+        for course in courseInSem:  # 과목 정보 출력 
             course_id, _, _, semester, year, grade, title, dept_name, credit = course
             print("%10s\t%40s\t%15s\t%8s\t%8s" %("course_id", "title", "debt_name", "credit", "grade"))
             if grade == None:
                 print("%10s\t%40s\t%15s\t%8s\t" %(course_id, title, dept_name, credit))
             else:
                 print("%10s\t%40s\t%15s\t%8s\t%8s" %(course_id, title, dept_name, credit, grade))
-            gradeIsNull = False
-
     c.close()
-
     return
-
-
-def print_course_qual():
-
-    c = user_acc.conn.cursor()
-
-    while(True):
-        print("\nCheck Course Qualification")
-        course_info = input("Enter course ID or Title (Enter q to quit)")
-
-        if(course_info == "q" or course_info == "Q"):
-            break
-
-        # Select course_id from course where title = input
-
-        # If course id가 없다면
-        #   input은 title이 아니라 course_id 일 수도 있다.
-        #   Select title from course where course_id = input
-        #   if title이 없다면
-        #       해당 course는 존재하지 않는다 출력
-        #       return
-        #   else: #input이 course_id일 때
-        #       course_id = input
-        #       course_title = title
-        # else: #input이 title일 때
-        #   course_id = course_id
-        #   course_title = input
-
 
 def quit_menu():
     global user_acc # global 변수 write할 때는 명시 필요
