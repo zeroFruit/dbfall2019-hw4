@@ -58,7 +58,7 @@ def print_time_table():
           % ("course_id", "title", "day", "start_time", "end_time"))
 
     c.execute("select course_id, title, day, start_hr, start_min, end_hr, end_min "
-              "from takes natural join course natural join section natural join time_slot "
+              "from takes natural left join course natural left join section natural left join time_slot "
               "where ID = %s and semester = \"%s\" and year = \"%s\""
               % (user_acc.ID, semester, year))
 
@@ -66,8 +66,14 @@ def print_time_table():
 
     for course_time in course_times:
         course_id, title, day, start_hr, start_min, end_hr, end_min = course_time
-        start_time = "%02d : %02d" % (start_hr, start_min)
-        end_time = "%02d : %02d" % (end_hr, end_min)
+
+        start_time = None
+        end_time = None
+
+        if start_hr and start_min:
+            start_time = "%02d : %02d" % (start_hr, start_min)
+        if end_hr and end_min:
+            end_time = "%02d : %02d" % (end_hr, end_min)
         print("%10s\t%40s\t%15s\t%10s\t%10s"
               % (course_id, title, day, start_time, end_time))
 
