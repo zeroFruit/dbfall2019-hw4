@@ -54,7 +54,7 @@ def print_time_table():
     year, semester = results[semester_num - 1]
 
     print("\nTime Table\n")
-    print("%10s\t%40s\t%15s\t%10s\t%10s"
+    print("%10s\t%40s\t%15s\t%15s\t%10s"
           % ("course_id", "title", "day", "start_time", "end_time"))
 
     c.execute("select course_id, title, day, start_hr, start_min, end_hr, end_min "
@@ -74,7 +74,7 @@ def print_time_table():
             start_time = "%02d : %02d" % (start_hr, start_min)
         if end_hr and end_min:
             end_time = "%02d : %02d" % (end_hr, end_min)
-        print("%10s\t%40s\t%15s\t%10s\t%10s"
+        print("%10s\t%40s\t%15s\t%15s\t%10s"
               % (course_id, title, day, start_time, end_time))
 
     # 사용한 cursor  닫기
