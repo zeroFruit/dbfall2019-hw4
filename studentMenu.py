@@ -4,22 +4,21 @@ from DBconnection import *
 
 def student_menu():
 
+    # 메뉴 UI 출력 및 동작에 해당하는 함수 출력
     menu_num = -1
 
     while menu_num != '0':
         print("\n\nWelcome %s" % user_acc.name)
         print("Please select student menu")
         print("1) Student Report")
-        print("2) Check Course Qualification")
-        print("3) View Time Table")
+        print("2) View Time Table")
         print("0) Quit")
         menu_num = input("Enter : ")
 
         switcher = {
             '0': quit_menu,
             '1': print_stud_report,
-            '2': print_course_qual,
-            '3': print_time_table
+            '2': print_time_table
         }
 
         selected_func = switcher.get(menu_num, print_wrong)
@@ -33,88 +32,140 @@ def print_time_table():
 
     c = user_acc.conn.cursor()
 
-    # user가 수강한 year, semester 정보 받아오기
-    # Takes table을 이용하여 user가 수강한 year, semester쌍을 최근 순서로 받아오기 (distinct로 중복계산 방지)
+    # 해당 학생이 수강한 year, semester 쌍을 시간 순서대로 모두 출력
+    c.execute("SELECT year, semester "
+              "FROM takes "
+              "WHERE ID = \"%s\" "
+              "GROUP BY year, semester "
+              "ORDER BY year DESC, field(semester, 'Winter', 'Fall', 'Summer', 'Spring')"
+              % user_acc.ID)
+
+    results = c.fetchall()
+
+    print("Please select semester to view")
+
+    i = 0
+    for result in results:
+        i = i + 1
+        print("%2s) %s %s" % (i, result[0], result[1]))
+
+    semester_num = int(input())
+
+    year, semester = results[semester_num - 1]
 
     print("\nTime Table\n")
-    print("%10s\t%40s\t%15s\t%10s\t%10s" % ("course_id", "title", "day", "start_time", "end_time"))
+    print("%10s\t%40s\t%15s\t%15s\t%10s"
+          % ("course_id", "title", "day", "start_time", "end_time"))
 
-    # user가 수강한 year, semester중 가장 최근 year, semester를 이용하여
-    # time table 만들기
-    # Takes, course, section, time_slot 을 natural join하여 사용자가 수강한 강의의 course_id, title과 그 강의의 시작과 끝 시간을 받아온다.
-    # For course_time in course_times:
-    #   위 형식에 맞춰 course_id, title, day, start_time, end_time 출력
+    c.execute("select course_id, title, day, start_hr, start_min, end_hr, end_min "
+              "from takes natural left join course natural left join section natural left join time_slot "
+              "where ID = %s and semester = \"%s\" and year = \"%s\""
+              % (user_acc.ID, semester, year))
+
+    course_times = c.fetchall()
+
+    for course_time in course_times:
+        course_id, title, day, start_hr, start_min, end_hr, end_min = course_time
+
+        start_time = None
+        end_time = None
+
+        if start_hr is not None and start_min is not None:
+            start_time = "%02d : %02d" % (start_hr, start_min)
+
+        if end_hr is not None and end_min is not None:
+            end_time = "%02d : %02d" % (end_hr, end_min)
+
+        print("%10s\t%40s\t%15s\t%15s\t%10s"
+              % (course_id, title, day, start_time, end_time))
 
     # 사용한 cursor  닫기
     c.close()
 
     return
 
+    
+# 전체 과목 데이터를 학기별로 나누어서 구분하기. 
+def process(data):
+    if len(data) == 0:
+        return data
+    splitBySemester = []
+    first_lecture = data[0]
+    same_semester = [data[0]]
+    prev_semester = first_lecture[3]
+    prev_year = first_lecture[4]
+    for lecture in data[1:]:
+        semester = lecture[3]
+        year = lecture[4]
+        if semester == prev_semester and year == prev_year:  
+            same_semester.append(lecture)
+        else:
+            splitBySemester.append(same_semester)
+            same_semester = [lecture]
+        prev_semester = semester
+        prev_year = year
+    splitBySemester.append(same_semester)
+    return splitBySemester
+
 
 def print_stud_report():
-
+    gpaDict = {"A+": 4.3, "A": 4.0, "A-": 3.7, "B+": 3.3, "B" : 3.0, "B-":2.7, 
+               "C+": 2.3, "C": 2.0, "C-":1.7, "D+": 1.3, "D": 1.0, "D-" : 0.7, "F": 0}
     c = user_acc.conn.cursor()
     c.execute("SELECT * FROM student WHERE ID = \"%s\" and name = \"%s\""%(user_acc.ID, user_acc.name))
 
     data = c.fetchone()
-
     print("You are a member of %s"%data[2])
+    
+    totalCreditIsZero = True if (data[3] == None or data[3] == 0) else False  # Tot_cred Null 처리 
+    if totalCreditIsZero:
+        totalCredit = "0"
+        print("You have taken total %s credit\n"%totalCredit)
+        c.close()
+        return 
+    
     print("You have taken total %s credit\n"%data[3])
-    print("Semester report\n")
+    print("Semester report")
+    
+    sql = "select * " +\
+          "from takes as T natural join course as C " +\
+          "where T.ID in (select ID from student where ID = '{}') ".format(user_acc.ID) +\
+          "order by year desc, semester;"
+    c.execute(sql)
+    
+    data = c.fetchall()  #data = [ID, course_id, sec_id, semester, year, grade, title, dept_name, credit]
+    coursesBySem = process(data) 
+    
+    
+    for courseInSem in coursesBySem:  # 전체 학기 성적 처리 
+        total_gpa = 0
+        total_credit = 0
+        
+        for course in courseInSem:  # 학기 성적 합산
+            course_id, _, _, semester, year, grade, title, dept_name, credit = course
+            if grade == None:
+                continue
+            clean_grade = grade.strip()  # 'A ' 처리. 
+            total_gpa += gpaDict[clean_grade] * int(credit)
+            total_credit += int(credit)
+            
+        if total_gpa == 0:  # grade가 모두 null인 경우 GPA 출력하지 않음. 
+            print("\n%s\t%s\tGPA : "%(year, semester))
+        else:
+            avg_gpa = total_gpa / total_credit  # grade가 하나라도 null이 아닌 게 있다면 GPA 출력
+            print("\n%s\t%s\tGPA : %.5f"%(year, semester, avg_gpa))
 
-    # 평점 구하는 과정
-    # 수강한 학기, 연도 정보 모두 가져오기(distinct로 중복계산 방지)
-    # takes table에서 사용자가 다닌 year, semester 쌍을 최근 순서로 가져온다.
-    # For year, semester 쌍들에 대해서:
-    #   takes, course table을 natural join하여 각 수업의 credit과 사용자가 받은 grade를 얻는다.
-    #
-    # grade, credit 정보 cursor에서 받아오기
-    #   (grade1, credit1), (grade2, credit2) ... 을 (grade1, grade2, ...), (credit1, credit2, ...) 로 만든다.
-    #   Zip을 이용하여 grades, credit list를 생성한다.
-    #   For grade in grades:
-    #       gp_to_float함수를 이용하여 gps list에 append
+        print("%10s\t%40s\t%15s\t%8s\t%8s" % ("course_id", "title", "debt_name", "credit", "grade"))
 
-    #   print("\n%s\t%s\tGPA : %d"%(year, semester, sum(gps)/len(gps)))
+        for course in courseInSem:  # 과목 정보 출력 
+            course_id, _, _, semester, year, grade, title, dept_name, credit = course
 
-    #   과목들 정보 출력
-    #   print("%10s\t%40s\t%15s\t%8s\t%8s"
-    #   %("course_id", "title", "debt_name", "credit", "grade"))
-    # (grade1, credit1), (grade2, credit2) ... 을 (grade1, grade2, ...), (credit1, credit2, ...) 로 만든다.
-    #   course, takes를 natural join하여 해당 semester, year에 수강한 강의 정보들을 만듬
-    #   for course info in course_infos:
-    #       위 출력 형식대로 course_id, title, dept_name, credit, grade를 줄 맞춰 출력
-
-    # cursor 닫기
+            if grade == None:
+                print("%10s\t%40s\t%15s\t%8s\t" %(course_id, title, dept_name, credit))
+            else:
+                print("%10s\t%40s\t%15s\t%8s\t%8s" %(course_id, title, dept_name, credit, grade))
     c.close()
-
     return
-
-
-def print_course_qual():
-
-    c = user_acc.conn.cursor()
-
-    while(True):
-        print("\nCheck Course Qualification")
-        course_info = input("Enter course ID or Title (Enter q to quit)")
-
-        if(course_info == "q" or course_info == "Q"):
-            break
-
-        # Select course_id from course where title = input
-
-        # If course id가 없다면
-        #   input은 title이 아니라 course_id 일 수도 있다.
-        #   Select title from course where course_id = input
-        #   if title이 없다면
-        #       해당 course는 존재하지 않는다 출력
-        #       return
-        #   else: #input이 course_id일 때
-        #       course_id = input
-        #       course_title = title
-        # else: #input이 title일 때
-        #   course_id = course_id
-        #   course_title = input
 
 
 def quit_menu():
@@ -131,3 +182,4 @@ def quit_menu():
 def print_wrong():
     print("\nwrong menu number. ")
     return
+
