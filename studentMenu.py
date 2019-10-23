@@ -37,7 +37,7 @@ def print_time_table():
               "FROM takes "
               "WHERE ID = \"%s\" "
               "GROUP BY year, semester "
-              "ORDER BY year DESC, semester"
+              "ORDER BY year DESC, field(semester, 'Winter', 'Fall', 'Summer', 'Spring')"
               % user_acc.ID)
 
     results = c.fetchall()
