@@ -54,7 +54,6 @@ def auth(ID, name):
             # student, instructor 모두가 아닐 때
             print("\nWrong authentication.")
 
-            # 아래 둘 중 어떤 것으로 해야하지
+            # user가 사용하던 connection 반납
             return_connect(user_connect)
-            # user_connect.close()
             return
