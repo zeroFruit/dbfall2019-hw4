@@ -129,7 +129,7 @@ def print_stud_report():
     
     sql = "select * " +\
           "from takes as T natural join course as C " +\
-          "where T.ID in (select ID from student where name = '{}') ".format(user_acc.name) +\
+          "where T.ID in (select ID from student where ID = '{}') ".format(user_acc.ID) +\
           "order by year desc, semester;"
     c.execute(sql)
     
