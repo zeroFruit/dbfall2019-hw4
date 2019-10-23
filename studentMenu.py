@@ -70,10 +70,12 @@ def print_time_table():
         start_time = None
         end_time = None
 
-        if start_hr and start_min:
+        if start_hr is not None and start_min is not None:
             start_time = "%02d : %02d" % (start_hr, start_min)
-        if end_hr and end_min:
+
+        if end_hr is not None and end_min is not None:
             end_time = "%02d : %02d" % (end_hr, end_min)
+
         print("%10s\t%40s\t%15s\t%15s\t%10s"
               % (course_id, title, day, start_time, end_time))
 
