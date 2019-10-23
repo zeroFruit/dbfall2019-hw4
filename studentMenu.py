@@ -146,10 +146,12 @@ def print_stud_report():
         else:
             avg_gpa = total_gpa / total_credit  # grade가 하나라도 null이 아닌 게 있다면 GPA 출력
             print("\n%s\t%s\tGPA : %.5f"%(year, semester, avg_gpa))
-            
+
+        print("%10s\t%40s\t%15s\t%8s\t%8s" % ("course_id", "title", "debt_name", "credit", "grade"))
+
         for course in courseInSem:  # 과목 정보 출력 
             course_id, _, _, semester, year, grade, title, dept_name, credit = course
-            print("%10s\t%40s\t%15s\t%8s\t%8s" %("course_id", "title", "debt_name", "credit", "grade"))
+
             if grade == None:
                 print("%10s\t%40s\t%15s\t%8s\t" %(course_id, title, dept_name, credit))
             else:
